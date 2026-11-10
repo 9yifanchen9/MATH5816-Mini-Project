@@ -1,0 +1,12 @@
+\begin{table}
+\caption{Data summary. Source: Yahoo Finance via yfinance, downloaded 2026-11-10.}
+\label{tab:data}
+\begin{tabular}{llllp{7cm}}
+\toprule
+Ticker & Start & End & $N$ returns & Cleaning notes \\
+\midrule
+VAS.AX & 2014-11-18 & 2026-11-09 & 3029 & Adj Close; inner join with VGS; 1402 pre-2014 rows dropped (VGS not listed); 2024-05-10 dropped (no VGS price); 16 zero returns kept; no |X| > 10% \\
+VGS.AX & 2014-11-18 & 2026-11-09 & 3029 & Adj Close; inner join with VAS; 2024-05-10 dropped (no VGS price); 32 zero returns kept; 4 zero-volume days kept; no |X| > 10% \\
+\bottomrule
+\end{tabular}
+\end{table}

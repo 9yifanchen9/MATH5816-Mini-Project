@@ -1,0 +1,3 @@
+ticker,name,download_date,raw_first_date,raw_last_date,raw_n_obs,start,end,n_prices,n_returns,cleaning_notes
+VAS.AX,Australia (VAS),2026-11-10,2009-05-01,2026-11-09,4433,2014-11-18,2026-11-09,3030,3029,Adj Close; inner join with VGS; 1402 pre-2014 rows dropped (VGS not listed); 2024-05-10 dropped (no VGS price); 16 zero returns kept; no |X| > 10%
+VGS.AX,Global ex-AU (VGS),2026-11-10,2014-11-18,2026-11-09,3030,2014-11-18,2026-11-09,3030,3029,Adj Close; inner join with VAS; 2024-05-10 dropped (no VGS price); 32 zero returns kept; 4 zero-volume days kept; no |X| > 10%
