@@ -100,3 +100,11 @@ T_DF_PRIOR = (2.0, 0.1)
 MCMC_CHAINS = 4
 MCMC_ITER = 6_000            # per chain, after a separate pilot run
 MCMC_BURN = 1_000            # discarded from the start of each chain
+
+# ---------------------------------------------------------------------------
+# Estimation (notebook 03)
+# ---------------------------------------------------------------------------
+NW_LAGS = None               # Newey-West lags; None = rule floor(4 (n/100)^(2/9)) (Newey & West, 1994)
+MIN_DAYS_PER_YEAR = 126      # calendar years with fewer trading days are left out of the yearly estimates
+ROLL_EST_WINDOW = 504        # rolling estimation window (trading days, 2 years)
+N_SIM_CHECK = 1_000          # simulated GBM samples for the estimator check

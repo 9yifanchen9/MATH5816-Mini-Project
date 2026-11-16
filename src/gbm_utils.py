@@ -317,3 +317,93 @@ def waic(loglik: np.ndarray) -> tuple[float, np.ndarray]:
     p_waic = loglik.var(axis=0, ddof=1)
     point = -2 * (lppd - p_waic)
     return float(point.sum()), point
+
+
+# ---------------------------------------------------------------------------
+# Estimation (notebook 03). Annual units: dt in years per period.
+# ---------------------------------------------------------------------------
+def gbm_estimates(x, dt: float, level: float = 0.95) -> dict:
+    """MLE of GBM parameters from log returns x sampled every dt years,
+    with i.i.d. confidence intervals.
+
+    nu = xbar/dt; sigma^2 = s^2/dt (n-1 divisor); mu = nu + sigma^2/2.
+    CIs: t-interval for nu (SE = s/sqrt(n)/dt = sigma/sqrt(T));
+    chi-square interval for sigma; delta method for mu
+    (Var(mu) = SE(nu)^2 + sigma^4 / (2(n-1))). Also SE(sigma) ~ sigma/sqrt(2n).
+    """
+    from scipy import stats
+
+    x = np.asarray(pd.Series(x).dropna(), dtype=float)
+    n = len(x)
+    s = x.std(ddof=1)
+    nu = x.mean() / dt
+    sig = s / np.sqrt(dt)
+    mu = nu + sig**2 / 2
+    se_nu = sig / np.sqrt(n * dt)
+    se_sig = sig / np.sqrt(2 * n)
+    se_mu = np.sqrt(se_nu**2 + sig**4 / (2 * (n - 1)))
+    a = 1 - level
+    tq, zq = stats.t.ppf(1 - a / 2, n - 1), stats.norm.ppf(1 - a / 2)
+    return {
+        "n": n, "T": n * dt,
+        "nu": nu, "se_nu": se_nu, "nu_lo": nu - tq * se_nu, "nu_hi": nu + tq * se_nu,
+        "mu": mu, "se_mu": se_mu, "mu_lo": mu - zq * se_mu, "mu_hi": mu + zq * se_mu,
+        "sigma": sig, "se_sigma": se_sig,
+        "sigma_lo": np.sqrt((n - 1) * s**2 / stats.chi2.ppf(1 - a / 2, n - 1) / dt),
+        "sigma_hi": np.sqrt((n - 1) * s**2 / stats.chi2.ppf(a / 2, n - 1) / dt),
+    }
+
+
+def fisher_ci(r: float, n: int, level: float = 0.95) -> tuple[float, float]:
+    """Fisher z-transform confidence interval for a correlation."""
+    from scipy import stats
+
+    z = stats.norm.ppf(1 - (1 - level) / 2)
+    return np.tanh(np.arctanh(r) - z / np.sqrt(n - 3)), np.tanh(np.arctanh(r) + z / np.sqrt(n - 3))
+
+
+def newey_west_lags(n: int) -> int:
+    """Newey-West (1994) rule of thumb: floor(4 (n/100)^(2/9))."""
+    return int(np.floor(4 * (n / 100) ** (2 / 9)))
+
+
+def hac_se_mean(x, lags: int) -> float:
+    """Newey-West (Bartlett kernel) standard error of the sample mean."""
+    x = np.asarray(pd.Series(x).dropna(), dtype=float)
+    n = len(x)
+    d = x - x.mean()
+    lrv = d @ d / n
+    for j in range(1, lags + 1):
+        lrv += 2 * (1 - j / (lags + 1)) * (d[j:] @ d[:-j]) / n
+    return float(np.sqrt(lrv / n))
+
+
+def block_bootstrap_indices(n: int, block: int, B: int, rng) -> np.ndarray:
+    """Moving-block bootstrap: B x n index array built from blocks of
+    `block` consecutive observations with uniformly random start points."""
+    k = int(np.ceil(n / block))
+    starts = rng.integers(0, n - block + 1, size=(B, k))
+    idx = (starts[:, :, None] + np.arange(block)).reshape(B, k * block)
+    return idx[:, :n]
+
+
+def bootstrap_gbm_stats(X: np.ndarray, dt: float, block: int, B: int, rng, chunk: int = 250) -> pd.DataFrame:
+    """Joint moving-block bootstrap of a bivariate return array X (n x 2).
+    Rows of both series are resampled together, keeping their correlation.
+    Returns B rows of annual nu, sigma, mu for each column, rho and the
+    drift difference nu_1 - nu_0."""
+    n = len(X)
+    out = []
+    for start in range(0, B, chunk):
+        b = min(chunk, B - start)
+        Xb = X[block_bootstrap_indices(n, block, b, rng)]          # (b, n, 2)
+        m = Xb.mean(axis=1)
+        s = Xb.std(axis=1, ddof=1)
+        c = ((Xb - m[:, None, :]).prod(axis=2)).sum(axis=1) / (n - 1)
+        out.append(np.column_stack([m / dt, s / np.sqrt(dt), c / (s[:, 0] * s[:, 1])]))
+    a = np.vstack(out)
+    df = pd.DataFrame({"nu_0": a[:, 0], "nu_1": a[:, 1], "sigma_0": a[:, 2], "sigma_1": a[:, 3], "rho": a[:, 4]})
+    df["mu_0"] = df.nu_0 + df.sigma_0**2 / 2
+    df["mu_1"] = df.nu_1 + df.sigma_1**2 / 2
+    df["nu_1 - nu_0"] = df.nu_1 - df.nu_0
+    return df
