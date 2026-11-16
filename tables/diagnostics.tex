@@ -1,0 +1,27 @@
+\begin{table}
+\caption{Descriptive and test statistics for log returns. Means and standard deviations are per period unless annualised. JB: Jarque--Bera; LB: Ljung--Box at the stated lag; variance ratio: variance of the period return divided by (average trading days per period $\times$ daily variance); $|z|>k$: returns beyond $k$ sample standard deviations, observed and expected under normality.}
+\label{tab:diagnostics}
+\begin{tabular}{lrrrrrr}
+\toprule
+frequency & \multicolumn{2}{c}{daily} & \multicolumn{2}{c}{weekly} & \multicolumn{2}{c}{monthly} \\
+ETF & AU & GL & AU & GL & AU & GL \\
+\midrule
+n & 3029 & 3029 & 624 & 624 & 143 & 143 \\
+mean (\%) & 0.032 & 0.049 & 0.159 & 0.233 & 0.680 & 1.002 \\
+std dev (\%) & 0.923 & 0.827 & 1.898 & 1.729 & 3.945 & 3.440 \\
+annualised mean (\%) & 8.12 & 12.25 & 8.24 & 12.08 & 8.10 & 11.92 \\
+annualised std dev (\%) & 14.65 & 13.13 & 13.68 & 12.46 & 13.61 & 11.86 \\
+skewness & -0.86 & -0.40 & -1.44 & -1.45 & -1.79 & -0.35 \\
+excess kurtosis & 8.20 & 4.98 & 8.74 & 9.98 & 8.68 & -0.43 \\
+JB p-value & <0.001 & <0.001 & <0.001 & <0.001 & <0.001 & 0.125 \\
+LB lag & 20 & 20 & 10 & 10 & 6 & 6 \\
+LB p-value (returns) & <0.001 & 0.002 & 0.139 & 0.766 & 0.512 & 0.352 \\
+LB p-value (squared returns) & <0.001 & <0.001 & <0.001 & <0.001 & 0.468 & 0.825 \\
+variance ratio vs daily & -- & -- & 0.87 & 0.90 & 0.86 & 0.82 \\
+$|z|>3$ observed & 39 & 36 & 6 & 6 & 1 & 0 \\
+$|z|>3$ expected & 8.18 & 8.18 & 1.68 & 1.68 & 0.39 & 0.39 \\
+$|z|>4$ observed & 18 & 15 & 3 & 3 & 1 & 0 \\
+$|z|>4$ expected & 0.19 & 0.19 & 0.04 & 0.04 & 0.01 & 0.01 \\
+\bottomrule
+\end{tabular}
+\end{table}

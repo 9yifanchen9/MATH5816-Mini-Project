@@ -73,3 +73,13 @@ W_MARKET_CAP_SOURCE = "TODO: source"
 # Plot colours (Okabe-Ito, colourblind-safe). Same colour per asset throughout.
 # ---------------------------------------------------------------------------
 COLORS = {"AU": "#0072B2", "GL": "#D55E00", "SAV": "#009E73"}
+
+# ---------------------------------------------------------------------------
+# Diagnostics (notebook 02)
+# ---------------------------------------------------------------------------
+FREQ_RULES = {"daily": None, "weekly": "W-FRI", "monthly": "ME"}  # pandas resample rules
+ACF_LAGS = 20                # ACF plotted for lags 1-20
+LB_LAGS = {"daily": 20, "weekly": 10, "monthly": 6}  # Ljung-Box lag per frequency
+ROLL_VOL_WINDOW = 63         # rolling volatility window (trading days, ~3 months)
+ROLL_CORR_WINDOW = 126       # rolling correlation window (trading days, ~6 months)
+VR_HORIZONS = [2, 5, 10, 21, 63]  # variance-ratio horizons q (trading days)
