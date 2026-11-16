@@ -177,3 +177,143 @@ def variance_ratio(x: pd.Series, q: int) -> tuple[float, float, float]:
         theta += (2 * (q - j) / q) ** 2 * delta
     z = np.sqrt(n) * (vr - 1) / np.sqrt(theta)             # sqrt(n)(VR - 1) -> N(0, theta)
     return vr, z, 2 * stats.norm.sf(abs(z))
+
+
+# ---------------------------------------------------------------------------
+# Window-size analysis (notebook 02). Vectorised over windows (rows).
+# ---------------------------------------------------------------------------
+def make_windows(x, L: int) -> np.ndarray:
+    """Non-overlapping windows of length L from the start; leftover tail dropped."""
+    x = np.asarray(x, dtype=float)
+    m = len(x) // L
+    return x[: m * L].reshape(m, L)
+
+
+def jb_pvalues(xw: np.ndarray) -> np.ndarray:
+    """Jarque-Bera p-value for each row (same statistic as scipy.stats.jarque_bera)."""
+    from scipy import stats
+
+    d = xw - xw.mean(axis=1, keepdims=True)
+    m2 = (d**2).mean(axis=1)
+    s = (d**3).mean(axis=1) / m2**1.5
+    k = (d**4).mean(axis=1) / m2**2
+    jb = xw.shape[1] / 6 * (s**2 + (k - 3) ** 2 / 4)
+    return stats.chi2.sf(jb, 2)
+
+
+def lb_pvalues(xw: np.ndarray, h: int) -> np.ndarray:
+    """Ljung-Box(h) p-value for each row (same statistic as statsmodels acorr_ljungbox)."""
+    from scipy import stats
+
+    L = xw.shape[1]
+    d = xw - xw.mean(axis=1, keepdims=True)
+    denom = (d**2).sum(axis=1)
+    q = np.zeros(len(xw))
+    for k in range(1, h + 1):
+        r = (d[:, k:] * d[:, :-k]).sum(axis=1) / denom
+        q += r**2 / (L - k)
+    return stats.chi2.sf(L * (L + 2) * q, h)
+
+
+def window_pvalues(xw: np.ndarray, h: int) -> dict:
+    """p-values of the three i.i.d.-normal checks for each window."""
+    return {"normality (JB)": jb_pvalues(xw),
+            f"independence (LB({h}))": lb_pvalues(xw, h),
+            f"constant volatility (LB({h}) on squares)": lb_pvalues(xw**2, h)}
+
+
+# ---------------------------------------------------------------------------
+# Bayesian analysis (notebook 03b)
+# ---------------------------------------------------------------------------
+def gbm_posterior_draws(X: np.ndarray, n_draws: int, rng) -> tuple[np.ndarray, np.ndarray]:
+    """Draws from the posterior of (m, V) for X_k iid N_d(m, V) under the
+    Jeffreys prior p(m, V) ∝ |V|^{-(d+1)/2}:
+
+        V | X ~ Inv-Wishart(n - 1, S),   m | V, X ~ N(xbar, V / n),
+
+    with S the centred sum of squares (Gelman et al., BDA3, Sec. 3.6).
+    Returns m (n_draws x d) and V (n_draws x d x d), per-period units.
+    """
+    from scipy import stats
+
+    X = np.asarray(X, dtype=float)
+    n, d = X.shape
+    xbar = X.mean(axis=0)
+    S = (X - xbar).T @ (X - xbar)
+    V = stats.invwishart(df=n - 1, scale=S).rvs(n_draws, random_state=rng).reshape(n_draws, d, d)
+    z = rng.standard_normal((n_draws, d, 1))
+    m = xbar + (np.linalg.cholesky(V / n) @ z)[..., 0]
+    return m, V
+
+
+def t_log_posterior(theta, x, df_shape, df_rate):
+    """Log posterior of the i.i.d. Student-t model x = a + s * t_df on
+    theta = (a, log s, log df). Priors: flat on a, p(s) ∝ 1/s (flat on log s),
+    df ~ Gamma(shape, rate) (Jacobian for log df included).
+    """
+    from scipy import stats
+
+    a, log_s, log_df = theta
+    df = np.exp(log_df)
+    if not (0.1 < df < 1e4):
+        return -np.inf
+    ll = stats.t.logpdf(x, df, loc=a, scale=np.exp(log_s)).sum()
+    lp = stats.gamma.logpdf(df, df_shape, scale=1 / df_rate) + log_df
+    return ll + lp
+
+
+def metropolis(logpost, start: np.ndarray, cov: np.ndarray, n_iter: int, rng) -> tuple[np.ndarray, float]:
+    """Random-walk Metropolis with Gaussian proposal covariance `cov`.
+    Returns (draws n_iter x p, acceptance rate)."""
+    p = len(start)
+    chol = np.linalg.cholesky(cov)
+    cur, cur_lp = np.array(start, float), logpost(start)
+    out = np.empty((n_iter, p))
+    acc = 0
+    for i in range(n_iter):
+        prop = cur + chol @ rng.standard_normal(p)
+        lp = logpost(prop)
+        if np.log(rng.uniform()) < lp - cur_lp:
+            cur, cur_lp = prop, lp
+            acc += 1
+        out[i] = cur
+    return out, acc / n_iter
+
+
+def split_rhat(chains: np.ndarray) -> float:
+    """Split-R-hat for one parameter; chains shape (n_chains, n_draws)."""
+    half = chains.shape[1] // 2
+    c = np.concatenate([chains[:, :half], chains[:, half: 2 * half]])
+    n = c.shape[1]
+    W = c.var(axis=1, ddof=1).mean()
+    B = n * c.mean(axis=1).var(ddof=1)
+    return float(np.sqrt(((n - 1) / n * W + B / n) / W))
+
+
+def ess(chains: np.ndarray) -> float:
+    """Effective sample size for one parameter (Geyer initial positive sequence
+    on the chain-averaged autocorrelation); chains shape (n_chains, n_draws)."""
+    m, n = chains.shape
+    c = chains - chains.mean(axis=1, keepdims=True)
+    f = np.fft.rfft(c, 2 * n, axis=1)
+    ac = np.fft.irfft(f * np.conj(f), axis=1)[:, :n]
+    rho = (ac / ac[:, :1]).mean(axis=0)
+    # tau = -1 + 2 * sum_k (rho_{2k} + rho_{2k+1}), stopping at the first negative pair
+    tau = -1.0
+    for t in range(0, n - 1, 2):
+        pair = rho[t] + rho[t + 1]
+        if pair < 0:
+            break
+        tau += 2 * pair
+    return float(m * n / tau)
+
+
+def waic(loglik: np.ndarray) -> tuple[float, np.ndarray]:
+    """WAIC (deviance scale) from a draws x observations log-likelihood matrix.
+    Returns (WAIC, pointwise contributions)."""
+    from scipy.special import logsumexp
+
+    lppd = logsumexp(loglik, axis=0) - np.log(loglik.shape[0])
+    p_waic = loglik.var(axis=0, ddof=1)
+    point = -2 * (lppd - p_waic)
+    return float(point.sum()), point

@@ -83,3 +83,20 @@ LB_LAGS = {"daily": 20, "weekly": 10, "monthly": 6}  # Ljung-Box lag per frequen
 ROLL_VOL_WINDOW = 63         # rolling volatility window (trading days, ~3 months)
 ROLL_CORR_WINDOW = 126       # rolling correlation window (trading days, ~6 months)
 VR_HORIZONS = [2, 5, 10, 21, 63]  # variance-ratio horizons q (trading days)
+
+# Window-size analysis (notebook 02): non-overlapping windows, trading days
+WINDOW_LENGTHS = [63, 126, 252, 504, 756, 1008, 1512]   # 3m, 6m, 1y, 2y, 3y, 4y, 6y
+LB_WINDOW_LAG = 10           # Ljung-Box lag used inside every window
+N_SIM_WINDOWS = 5_000        # simulated GBM windows per length (benchmark rejection rate)
+
+# ---------------------------------------------------------------------------
+# Bayesian analysis (notebook 03b)
+# ---------------------------------------------------------------------------
+N_POST = 20_000              # posterior draws, GBM model (exact conjugate sampling)
+N_PPC = 2_000                # posterior predictive replicated samples
+# Prior on Student-t degrees of freedom: Gamma(shape 2, rate 0.1), mean 20,
+# from Juarez & Steel (2010), J. Business & Economic Statistics 28(1), 52-66.
+T_DF_PRIOR = (2.0, 0.1)
+MCMC_CHAINS = 4
+MCMC_ITER = 6_000            # per chain, after a separate pilot run
+MCMC_BURN = 1_000            # discarded from the start of each chain
