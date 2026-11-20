@@ -108,3 +108,4 @@ NW_LAGS = None               # Newey-West lags; None = rule floor(4 (n/100)^(2/9
 MIN_DAYS_PER_YEAR = 126      # calendar years with fewer trading days are left out of the yearly estimates
 ROLL_EST_WINDOW = 504        # rolling estimation window (trading days, 2 years)
 N_SIM_CHECK = 1_000          # simulated GBM samples for the estimator check
+N_SIM_CORR = 1_000           # simulated constant-correlation Gaussian pairs (rolling-correlation benchmark)

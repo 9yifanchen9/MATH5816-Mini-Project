@@ -407,3 +407,16 @@ def bootstrap_gbm_stats(X: np.ndarray, dt: float, block: int, B: int, rng, chunk
     df["mu_1"] = df.nu_1 + df.sigma_1**2 / 2
     df["nu_1 - nu_0"] = df.nu_1 - df.nu_0
     return df
+
+
+def rolling_corr_paths(x: np.ndarray, y: np.ndarray, w: int) -> np.ndarray:
+    """Rolling Pearson correlation over windows of length w, along the last axis.
+    x, y: arrays (..., n). Returns (..., n - w + 1); entry i uses observations i..i+w-1."""
+    def rsum(a):
+        c = np.cumsum(a, axis=-1)
+        c = np.concatenate([np.zeros(c.shape[:-1] + (1,)), c], axis=-1)
+        return c[..., w:] - c[..., :-w]
+    sx, sy = rsum(x), rsum(y)
+    sxx, syy, sxy = rsum(x * x), rsum(y * y), rsum(x * y)
+    cov = sxy - sx * sy / w
+    return cov / np.sqrt((sxx - sx**2 / w) * (syy - sy**2 / w))

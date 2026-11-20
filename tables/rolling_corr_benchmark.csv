@@ -1,0 +1,8 @@
+statistic,value
+band 2.5%,0.45890041919893154
+band 97.5%,0.6907182636638888
+share of observed days outside band,0.5227272727272727
+observed min,0.16511564395721182
+P(simulated path min <= observed min),0.0
+observed max,0.8775354087936376
+P(simulated path max >= observed max),0.0
