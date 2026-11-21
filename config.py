@@ -5,6 +5,8 @@ Values marked TODO must be filled in (with a source) before the notebook
 that uses them is run.
 """
 
+import math
+
 # ---------------------------------------------------------------------------
 # Data
 # ---------------------------------------------------------------------------
@@ -46,11 +48,12 @@ TRADING_DAYS = 252          # annualisation convention: dt = 1/252 years
 DT = 1.0 / TRADING_DAYS
 
 # Risk-free rate, annual, continuously compounded.
-# TODO: fill in by hand from the RBA cash rate target or 90-day bank bill
-# rate (RBA statistical table F1), state the date, and convert to continuous
-# compounding: r = ln(1 + r_simple). Required from notebook 04.
-R_ANNUAL = None
-R_SOURCE = "TODO: source and date"
+# RBA cash rate target 4.85% p.a., effective 4 Nov 2026 (Reserve Bank of Australia,
+# cash rate target; RBA statistical table F1). Value as supplied by the author.
+# Converted to continuous compounding: r = ln(1 + 0.0485).
+R_SIMPLE = 0.0485
+R_ANNUAL = math.log(1 + R_SIMPLE)
+R_SOURCE = "RBA cash rate target 4.85% p.a., effective 4 Nov 2026"
 
 SEED = 5816                 # all simulations
 HORIZONS = [1, 5, 10, 20, 30]   # years
@@ -63,9 +66,11 @@ N_PATHS = 100_000           # Monte Carlo paths (notebook 04)
 # ---------------------------------------------------------------------------
 # Portfolios (notebook 04). pi = equity fraction, w = AU share of equities.
 # ---------------------------------------------------------------------------
-# TODO: set from cited sources before running notebook 04.
-W_HOME_BIASED = None        # typical Australian investor's AU share of equities
-W_HOME_BIASED_SOURCE = "TODO: source"
+# Home-biased split: 1/3 Australian, 2/3 international equities, per SSRN
+# abstract 4590406 (https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4590406).
+# TODO: add the paper's title, authors and year to this citation.
+W_HOME_BIASED = 1 / 3       # typical Australian investor's AU share of equities
+W_HOME_BIASED_SOURCE = "SSRN abstract 4590406: 1/3 domestic, 2/3 international equities"
 W_MARKET_CAP = None         # Australia's share of world equity market cap (~2%)
 W_MARKET_CAP_SOURCE = "TODO: source"
 
