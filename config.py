@@ -1,7 +1,7 @@
 """Project-wide settings for the GBM mini project.
 
 Every value set by hand lives here with a note on where it comes from.
-Values marked TODO still need part of their citation completed.
+Every hand-set value below cites its source.
 """
 
 import math
@@ -77,13 +77,14 @@ W_HOME_BIASED = 1 / 3
 W_HOME_BIASED_SOURCE = ("Anarkulova, Cederburg and O'Doherty (2026), SSRN 4590406: "
                         "optimal split ~1/3 domestic, 2/3 international equities")
 
-# Market-cap weight: Australia's share of the MSCI World index, about 1.6%,
-# computed by the author from MSCI World and MSCI World ex Australia (AUD).
+# Market-cap weight: Australia's share of the MSCI World index, 1.6%. From MSCI
+# index factsheets, data as of 30 Oct 2026 (msci.com): index market cap of
+# MSCI World (AUD) A$127,379,863.77m and MSCI World ex Australia (AUD)
+# A$125,341,964.77m, so Australia = 1 - 125,341,964.77 / 127,379,863.77 = 1.60%.
 # MSCI World ex Australia is the index VGS tracks, so w = 1.6% in VAS plus
 # 98.4% in VGS reproduces MSCI World.
-# TODO: add the date (and factsheet or data source) of the index values used.
 W_MARKET_CAP = 0.016
-W_MARKET_CAP_SOURCE = "Author's calculation from MSCI World and MSCI World ex Australia (AUD): ~1.6%"
+W_MARKET_CAP_SOURCE = "MSCI World vs MSCI World ex Australia (AUD) index factsheets, 30 Oct 2026: 1.60%"
 
 # ---------------------------------------------------------------------------
 # Plot colours (Okabe-Ito, colourblind-safe). Same colour per asset throughout.
@@ -125,3 +126,12 @@ MIN_DAYS_PER_YEAR = 126      # calendar years with fewer trading days are left o
 ROLL_EST_WINDOW = 504        # rolling estimation window (trading days, 2 years)
 N_SIM_CHECK = 1_000          # simulated GBM samples for the estimator check
 N_SIM_CORR = 1_000           # simulated constant-correlation Gaussian pairs (rolling-correlation benchmark)
+
+# ---------------------------------------------------------------------------
+# Application (notebook 04)
+# ---------------------------------------------------------------------------
+N_BOOT_PATHS = 100_000       # block-bootstrap wealth paths (model-risk check)
+# Portfolio colours: savings, all-AU and market-cap (~global) reuse the asset colours;
+# home-biased uses Okabe-Ito reddish purple; minimum variance dark grey with dashed lines.
+PORT_COLORS = {"Savings": "#009E73", "All Australian": "#0072B2", "Home-biased": "#CC79A7",
+               "Market-cap": "#D55E00", "Minimum variance": "#4D4D4D"}

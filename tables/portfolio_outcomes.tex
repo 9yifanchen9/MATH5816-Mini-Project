@@ -1,0 +1,20 @@
+\begin{table}
+\caption{Portfolio outcomes under GBM from $W_0$ = 10,000 AUD ($r$ = 4.74\% continuously compounded). Median and 5th percentile of terminal wealth (AUD). Shortfall: $\mathbb{P}(W_T < W_0e^{rT})$ at the point estimates; range with $\mu_A,\mu_G$ at the ends of their 95\% confidence intervals; predictive: averaged over the posterior of notebook 03b. Weights: home-biased $w=1/3$, market-cap $w=1.6\%$, minimum variance $w^*=36.9\%$.}
+\label{tab:portfolios}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+ & $T$ & $\mu_p$ (\%) & $\sigma_p$ (\%) & Median & 5th pct & Shortfall & Range (CI ends) & Predictive \\
+\midrule
+Savings & 10 & 4.74 & 0.00 & 16,058 & 16,058 & -- & -- & -- \\
+Savings & 30 & 4.74 & 0.00 & 41,405 & 41,405 & -- & -- & -- \\
+All Australian & 10 & 9.19 & 14.65 & 22,516 & 10,506 & 0.23 & [0.01, 0.86] & 0.29 \\
+All Australian & 30 & 9.19 & 14.65 & 114,153 & 30,486 & 0.10 & [0.00, 0.97] & 0.24 \\
+Home-biased & 10 & 11.80 & 12.27 & 30,193 & 15,948 & 0.05 & [0.00, 0.64] & 0.11 \\
+Home-biased & 30 & 11.80 & 12.27 & 275,232 & 91,118 & 0.00 & [0.00, 0.73] & 0.06 \\
+Market-cap & 10 & 13.05 & 13.06 & 33,851 & 17,162 & 0.04 & [0.00, 0.50] & 0.09 \\
+Market-cap & 30 & 13.05 & 13.06 & 387,889 & 119,604 & 0.00 & [0.00, 0.50] & 0.05 \\
+Minimum variance & 10 & 11.66 & 12.26 & 29,774 & 15,734 & 0.06 & [0.00, 0.66] & 0.12 \\
+Minimum variance & 30 & 11.66 & 12.26 & 263,950 & 87,450 & 0.00 & [0.00, 0.76] & 0.07 \\
+\bottomrule
+\end{tabular}
+\end{table}

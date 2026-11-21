@@ -420,3 +420,101 @@ def rolling_corr_paths(x: np.ndarray, y: np.ndarray, w: int) -> np.ndarray:
     sxx, syy, sxy = rsum(x * x), rsum(y * y), rsum(x * y)
     cov = sxy - sx * sy / w
     return cov / np.sqrt((sxx - sx**2 / w) * (syy - sy**2 / w))
+
+
+# ---------------------------------------------------------------------------
+# Portfolios (notebook 04). pi = equity fraction, w = AU share of equities.
+# ---------------------------------------------------------------------------
+def portfolio_params(pi, w, mu_a, mu_g, s_a, s_g, rho, r):
+    """Drift and volatility of a continuously rebalanced portfolio (annual):
+    mu_p = r + pi (w mu_A + (1-w) mu_G - r),
+    sigma_p^2 = pi^2 (w^2 s_A^2 + (1-w)^2 s_G^2 + 2 w (1-w) rho s_A s_G).
+    Works elementwise on arrays."""
+    mu_p = r + pi * (w * mu_a + (1 - w) * mu_g - r)
+    var_p = pi**2 * (w**2 * s_a**2 + (1 - w) ** 2 * s_g**2 + 2 * w * (1 - w) * rho * s_a * s_g)
+    return mu_p, np.sqrt(var_p)
+
+
+def min_variance_weight(s_a, s_g, rho) -> float:
+    """AU weight w* minimising equity-portfolio variance (unconstrained)."""
+    return (s_g**2 - rho * s_a * s_g) / (s_a**2 + s_g**2 - 2 * rho * s_a * s_g)
+
+
+def shortfall_prob(mu_p, s_p, r, T):
+    """P(W_T < W_0 e^{rT}) = Phi(-(mu_p - r - s_p^2/2) sqrt(T) / s_p) under GBM.
+    Returns NaN where s_p = 0 (savings: no randomness)."""
+    from scipy import stats
+
+    mu_p, s_p, T = np.asarray(mu_p, float), np.asarray(s_p, float), np.asarray(T, float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        p = stats.norm.cdf(-(mu_p - r - s_p**2 / 2) * np.sqrt(T) / s_p)
+    return np.where(s_p > 0, p, np.nan)
+
+
+def wealth_quantile(W0, mu_p, s_p, T, q):
+    """q-quantile of W_T for GBM wealth: W0 exp((mu_p - s_p^2/2) T + z_q s_p sqrt(T))."""
+    from scipy import stats
+
+    return W0 * np.exp((mu_p - s_p**2 / 2) * T + stats.norm.ppf(q) * s_p * np.sqrt(T))
+
+
+def portfolio_daily_log_returns(X: np.ndarray, pi, w, r: float, dt: float) -> np.ndarray:
+    """Log return of a portfolio rebalanced daily, from daily asset log returns
+    X (..., 2) = (AU, GL): ln(1 + pi (w R_A + (1-w) R_G) + (1-pi)(e^{r dt} - 1))."""
+    R = np.expm1(X)
+    rp = pi * (w * R[..., 0] + (1 - w) * R[..., 1]) + (1 - pi) * np.expm1(r * dt)
+    return np.log1p(rp)
+
+
+def max_drawdown(log_wealth: np.ndarray) -> np.ndarray:
+    """Maximum drawdown (fraction of the running peak) along the last axis of a
+    log-wealth path that starts at log W_0 (prepend 0 if needed)."""
+    peak = np.maximum.accumulate(log_wealth, axis=-1)
+    return 1 - np.exp((log_wealth - peak).min(axis=-1))
+
+
+def simulate_gbm_portfolios(nu, sig, rho, ports: dict, r, dt, n_steps, n_paths, rng,
+                            record_steps=(), dd_steps=()):
+    """Monte Carlo of correlated GBM (exact daily log returns) with daily
+    rebalancing. ports: {name: (pi, w)}. Returns
+    (log wealth {name: {step: array}}, max drawdown {name: {step: array}})."""
+    L = np.linalg.cholesky(np.array([[1, rho], [rho, 1]]))
+    m = np.asarray(nu) * dt
+    sd = np.asarray(sig) * np.sqrt(dt)
+    logw = {p: np.zeros(n_paths) for p in ports}
+    peak = {p: np.zeros(n_paths) for p in ports}
+    dd = {p: np.zeros(n_paths) for p in ports}        # max drawdown in log terms (<= 0)
+    rec = {p: {} for p in ports}
+    ddrec = {p: {} for p in ports}
+    record_steps, dd_steps = set(record_steps), set(dd_steps)
+    for t in range(1, n_steps + 1):
+        Z = rng.standard_normal((n_paths, 2)) @ L.T
+        X = m + sd * Z
+        for p, (pi, w) in ports.items():
+            logw[p] += portfolio_daily_log_returns(X, pi, w, r, dt)
+            np.maximum(peak[p], logw[p], out=peak[p])
+            np.minimum(dd[p], logw[p] - peak[p], out=dd[p])
+            if t in record_steps:
+                rec[p][t] = logw[p].copy()
+            if t in dd_steps:
+                ddrec[p][t] = 1 - np.exp(dd[p])
+    return rec, ddrec
+
+
+def block_bootstrap_log_wealth(port_logret: np.ndarray, n_days: int, block: int, n_paths: int, rng) -> np.ndarray:
+    """Terminal log wealth from a moving-block bootstrap of historical daily
+    portfolio log returns (port_logret: (n_ports, n) on the same dates).
+    The same blocks are used for every portfolio. Returns (n_ports, n_paths)."""
+    n = port_logret.shape[1]
+    c = np.concatenate([np.zeros((port_logret.shape[0], 1)), np.cumsum(port_logret, axis=1)], axis=1)
+    k_full, rem = divmod(n_days, block)
+    out = np.zeros((port_logret.shape[0], n_paths))
+    chunk = 5_000                                   # paths per chunk, to bound memory
+    for a in range(0, n_paths, chunk):
+        b = min(a + chunk, n_paths)
+        starts = rng.integers(0, n - block + 1, size=(b - a, k_full))
+        out[:, a:b] = (c[:, starts + block] - c[:, starts]).sum(axis=2)
+        if rem:
+            s = rng.integers(0, n - block + 1, size=b - a)
+            out[:, a:b] += c[:, s + rem] - c[:, s]
+    return out
