@@ -1,8 +1,7 @@
 """Project-wide settings for the GBM mini project.
 
 Every value set by hand lives here with a note on where it comes from.
-Values marked TODO must be filled in (with a source) before the notebook
-that uses them is run.
+Values marked TODO still need part of their citation completed.
 """
 
 import math
@@ -66,13 +65,25 @@ N_PATHS = 100_000           # Monte Carlo paths (notebook 04)
 # ---------------------------------------------------------------------------
 # Portfolios (notebook 04). pi = equity fraction, w = AU share of equities.
 # ---------------------------------------------------------------------------
-# Home-biased split: 1/3 Australian, 2/3 international equities, per SSRN
-# abstract 4590406 (https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4590406).
-# TODO: add the paper's title, authors and year to this citation.
-W_HOME_BIASED = 1 / 3       # typical Australian investor's AU share of equities
-W_HOME_BIASED_SOURCE = "SSRN abstract 4590406: 1/3 domestic, 2/3 international equities"
-W_MARKET_CAP = None         # Australia's share of world equity market cap (~2%)
-W_MARKET_CAP_SOURCE = "TODO: source"
+# Home-biased: 1/3 Australian, 2/3 international equities. This is the optimal
+# lifecycle split (average 34% domestic / 66% international stocks at all ages)
+# in Anarkulova, A., Cederburg, S. and O'Doherty, M. S. (2026), "Beyond the
+# Status Quo: A Critical Assessment of Lifecycle Investment Advice", working
+# paper dated 27 Aug 2026, SSRN abstract 4590406, Sec. 5.1 and Table III Panel A
+# (p. 22). It is a model-optimal allocation for a household in a developed
+# market, not an observed average holding; it is home-biased relative to the
+# market-cap weight below.
+W_HOME_BIASED = 1 / 3
+W_HOME_BIASED_SOURCE = ("Anarkulova, Cederburg and O'Doherty (2026), SSRN 4590406: "
+                        "optimal split ~1/3 domestic, 2/3 international equities")
+
+# Market-cap weight: Australia's share of the MSCI World index, about 1.6%,
+# computed by the author from MSCI World and MSCI World ex Australia (AUD).
+# MSCI World ex Australia is the index VGS tracks, so w = 1.6% in VAS plus
+# 98.4% in VGS reproduces MSCI World.
+# TODO: add the date (and factsheet or data source) of the index values used.
+W_MARKET_CAP = 0.016
+W_MARKET_CAP_SOURCE = "Author's calculation from MSCI World and MSCI World ex Australia (AUD): ~1.6%"
 
 # ---------------------------------------------------------------------------
 # Plot colours (Okabe-Ito, colourblind-safe). Same colour per asset throughout.
